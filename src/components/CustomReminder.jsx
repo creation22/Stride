@@ -46,16 +46,20 @@ export default function CustomReminderForm({ onReminderAdded }) {
       await setStorage({ customReminders: updatedReminders })
 
       // Send message to background to set up the alarm
-      chrome.runtime.sendMessage({
-        type: 'SET_CUSTOM_REMINDER',
-        id: id,
-        interval: Number(time),
-        label: label.trim()
-      }, (response) => {
-        if (response && response.status) {
-          console.log(response.status)
-        }
-      })
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: 'SET_CUSTOM_REMINDER',
+          id: id,
+          interval: Number(time),
+          label: label.trim()
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Chrome runtime error:', chrome.runtime.lastError)
+          } else if (response && response.status) {
+            console.log(response.status)
+          }
+        })
+      }
 
       // Reset form and refresh list
       setLabel('')
@@ -84,7 +88,18 @@ export default function CustomReminderForm({ onReminderAdded }) {
       await setStorage({ customReminders: updatedReminders })
       
       // Clear the alarm for this reminder
-      chrome.alarms.clear(`custom_${id}`)
+      if (chrome?.alarms?.clear) {
+        chrome.alarms.clear(`custom_${id}`)
+      } else if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: 'CLEAR_CUSTOM_ALARM',
+          id: id
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Chrome runtime error:', chrome.runtime.lastError)
+          }
+        })
+      }
       
       setCustomReminders(updatedReminders)
       alert('Reminder deleted successfully!')

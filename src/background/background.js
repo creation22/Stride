@@ -60,6 +60,22 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         });
       }
     });
+  } else if (alarm.name === 'walkReminderSnooze') {
+    // Handle snooze alarm
+    chrome.storage.sync.get(['currentStreak'], (result) => {
+      const streak = result.currentStreak || 0;
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: 'Stride Reminder (Snoozed)',
+        message: 'Time for that walk now! 🚶‍♂️',
+        priority: 2,
+        buttons: [
+          { title: 'Done Walking' },
+          { title: 'Snooze 5 min' }
+        ]
+      });
+    });
   }
 });
 
@@ -150,6 +166,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return true; // Keep message channel open for async response
       
+    case 'CLEAR_CUSTOM_ALARM':
+      chrome.alarms.clear(`custom_${message.id}`, () => {
+        sendResponse({ status: 'Custom alarm cleared' });
+      });
+      return true;
+      
     default:
       sendResponse({ status: 'Unknown message type' });
   }
@@ -163,7 +185,8 @@ chrome.runtime.onInstalled.addListener(() => {
       chrome.storage.sync.set({
         walkInterval: 30, // Default 30 minutes
         currentStreak: 0,
-        streaks: {}
+        streaks: {},
+        customReminders: []
       });
     }
   });

@@ -48,14 +48,18 @@ export default function App() {
         await setStorage({ walkInterval: Number(value) })
 
         // Send message to background to update alarm
-        chrome.runtime.sendMessage({ 
-          type: 'SET_INTERVAL', 
-          interval: Number(value) 
-        }, (response) => {
-          if (response && response.status) {
-            console.log(response.status)
-          }
-        })
+        if (chrome?.runtime?.sendMessage) {
+          chrome.runtime.sendMessage({ 
+            type: 'SET_INTERVAL', 
+            interval: Number(value) 
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.error('Chrome runtime error:', chrome.runtime.lastError)
+            } else if (response && response.status) {
+              console.log(response.status)
+            }
+          })
+        }
       } catch (error) {
         console.error('Error setting interval:', error)
       }
@@ -63,12 +67,19 @@ export default function App() {
   }
 
   const handleManualWalkComplete = () => {
-    chrome.runtime.sendMessage({ type: 'MANUAL_WALK_COMPLETE' }, (response) => {
-      if (response && response.status === 'Streak updated') {
-        // Refresh data to show updated counts
-        loadData()
-      }
-    })
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'MANUAL_WALK_COMPLETE' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Chrome runtime error:', chrome.runtime.lastError)
+        } else if (response && response.status === 'Streak updated') {
+          // Refresh data to show updated counts
+          loadData()
+        }
+      })
+    } else {
+      // Fallback for development/testing
+      alert('Walk completed! (Extension APIs not available in this context)')
+    }
   }
 
   const presetIntervals = [15, 30, 45, 60, 90, 120]
@@ -195,14 +206,9 @@ export default function App() {
 
       {/* Footer */}
       <div className="px-4 pb-4">
-        <a
-          href="https://www.buymeacoffee.com/yourusername"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block text-center text-sm text-yellow-600 hover:underline"
-        >
-          ☕ Support Development
-        </a>
+        <div className="text-center text-xs text-gray-500">
+          Stay healthy, stay active! 🚶‍♂️
+        </div>
       </div>
     </div>
   )
