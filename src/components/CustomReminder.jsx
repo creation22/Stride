@@ -9,6 +9,9 @@ export default function CustomReminderForm({ onReminderAdded }) {
 
   useEffect(() => {
     loadCustomReminders()
+    return () => {
+      // Clear any fallback setIntervals if needed in the future
+    }
   }, [])
 
   const loadCustomReminders = async () => {
@@ -23,76 +26,88 @@ export default function CustomReminderForm({ onReminderAdded }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
     if (!label.trim() || !time) {
       alert('Please enter both label and time')
       return
     }
 
-    if (Number(time) < 1 || Number(time) > 1440) {
+    const parsedTime = Number(time)
+    if (isNaN(parsedTime) || parsedTime < 1 || parsedTime > 1440) {
       alert('Please enter a time between 1 and 1440 minutes')
       return
     }
 
+    if (customReminders.length >= 10) {
+      alert('You can only add up to 10 custom reminders.')
+      return
+    }
+
+    const isDuplicate = customReminders.some(
+      (r) => r.label.trim().toLowerCase() === label.trim().toLowerCase() && r.time === parsedTime
+    )
+    if (isDuplicate) {
+      alert('A reminder with the same label and time already exists.')
+      return
+    }
+
     try {
-      // Create unique ID for the reminder
       const id = Date.now().toString()
-      const newReminder = { 
+      const newReminder = {
         id,
-        label: label.trim(), 
-        time: Number(time),
+        label: label.trim(),
+        time: parsedTime,
         created: new Date().toISOString()
       }
-      
-      const updatedReminders = [...(customReminders || []), newReminder]
+
+      const updatedReminders = [...customReminders, newReminder]
       await setStorage({ customReminders: updatedReminders })
 
-      // Try Chrome extension API first
+      // Chrome extension messaging
       if (chrome?.runtime?.sendMessage) {
-        chrome.runtime.sendMessage({
-          type: 'SET_CUSTOM_REMINDER',
-          id: id,
-          interval: Number(time),
-          label: label.trim()
-        })
-      } else {
-        // Fallback to Web Notifications API
-        if ('Notification' in window) {
-          // Request permission if needed
-          if (Notification.permission !== 'granted') {
-            await Notification.requestPermission()
+        chrome.runtime.sendMessage(
+          {
+            type: 'SET_CUSTOM_REMINDER',
+            id,
+            interval: parsedTime,
+            label: label.trim()
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error('SendMessage error:', chrome.runtime.lastError)
+            }
           }
-          
-          if (Notification.permission === 'granted') {
-            // Set up the interval for web notifications
-            const intervalId = setInterval(() => {
-              new Notification(label.trim(), {
-                body: `Time for your ${time}-minute reminder!`,
-                icon: '/icons/icon128.png'
-              })
-            }, Number(time) * 60 * 1000) // Convert minutes to milliseconds
-            
-            // Store the interval ID with the reminder
-            newReminder.webIntervalId = intervalId
-          } else {
-            alert('Notification permission denied. Reminders will only show as alerts.')
-          }
-        } else {
-          // Fallback to basic alerts if notifications aren't supported
-          const intervalId = setInterval(() => {
-            alert(`${label.trim()}: Time for your ${time}-minute reminder!`)
-          }, Number(time) * 60 * 1000)
-          
-          // Store the interval ID with the reminder
-          newReminder.webIntervalId = intervalId
+        )
+      } else if ('Notification' in window) {
+        // Web Notifications fallback
+        if (Notification.permission !== 'granted') {
+          await Notification.requestPermission()
         }
+
+        if (Notification.permission === 'granted') {
+          const intervalId = setInterval(() => {
+            new Notification(label.trim(), {
+              body: `Time for your ${parsedTime}-minute reminder!`,
+              icon: chrome.runtime?.getURL?.('icons/icon128.png') || '/icons/icon128.png'
+            })
+          }, parsedTime * 60 * 1000)
+          newReminder.webIntervalId = intervalId
+        } else {
+          alert('Notification permission denied. Reminders will only show as alerts.')
+        }
+      } else {
+        // Alert fallback
+        const intervalId = setInterval(() => {
+          alert(`${label.trim()}: Time for your ${parsedTime}-minute reminder!`)
+        }, parsedTime * 60 * 1000)
+        newReminder.webIntervalId = intervalId
       }
 
-      // Reset form and refresh list
       setLabel('')
       setTime('')
       setShowForm(false)
       setCustomReminders(updatedReminders)
-      
+
       if (onReminderAdded) {
         onReminderAdded()
       }
@@ -105,26 +120,31 @@ export default function CustomReminderForm({ onReminderAdded }) {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this reminder?')) {
-      return
-    }
+    if (!confirm('Are you sure you want to delete this reminder?')) return
 
     try {
-      const reminderToDelete = customReminders.find(r => r.id === id)
-      if (reminderToDelete && reminderToDelete.webIntervalId) {
+      const reminderToDelete = customReminders.find((r) => r.id === id)
+      if (reminderToDelete?.webIntervalId) {
         clearInterval(reminderToDelete.webIntervalId)
       }
 
-      const updatedReminders = (customReminders || []).filter(r => r.id !== id)
+      const updatedReminders = customReminders.filter((r) => r.id !== id)
       await setStorage({ customReminders: updatedReminders })
-      
+
       if (chrome?.runtime?.sendMessage) {
-        chrome.runtime.sendMessage({
-          type: 'CLEAR_CUSTOM_ALARM',
-          id: id
-        })
+        chrome.runtime.sendMessage(
+          {
+            type: 'CLEAR_CUSTOM_ALARM',
+            id
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error('ClearMessage error:', chrome.runtime.lastError)
+            }
+          }
+        )
       }
-      
+
       setCustomReminders(updatedReminders)
       alert('Reminder deleted successfully!')
     } catch (error) {
@@ -140,16 +160,19 @@ export default function CustomReminderForm({ onReminderAdded }) {
         <button
           onClick={() => setShowForm(!showForm)}
           className="text-sm text-blue-600 hover:underline"
+          aria-label={showForm ? 'Cancel reminder form' : 'Add new custom reminder'}
         >
           {showForm ? 'Cancel' : '+ Add New'}
         </button>
       </div>
 
-      {/* Show existing reminders */}
       {Array.isArray(customReminders) && customReminders.length > 0 && (
         <div className="space-y-2">
           {customReminders.map((reminder) => (
-            <div key={reminder.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+            <div
+              key={reminder.id}
+              className="flex justify-between items-center p-2 bg-gray-50 rounded"
+            >
               <div>
                 <div className="font-medium text-sm">{reminder.label}</div>
                 <div className="text-xs text-gray-600">Every {reminder.time} minutes</div>
@@ -158,6 +181,7 @@ export default function CustomReminderForm({ onReminderAdded }) {
                 onClick={() => handleDelete(reminder.id)}
                 className="text-red-500 hover:text-red-700 text-sm"
                 title="Delete reminder"
+                aria-label={`Delete reminder ${reminder.label}`}
               >
                 🗑️
               </button>
@@ -166,7 +190,6 @@ export default function CustomReminderForm({ onReminderAdded }) {
         </div>
       )}
 
-      {/* Add new reminder form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-3 p-3 bg-gray-50 rounded">
           <input
@@ -176,6 +199,7 @@ export default function CustomReminderForm({ onReminderAdded }) {
             onChange={(e) => setLabel(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded text-sm"
             maxLength={50}
+            required
           />
           <input
             type="number"
@@ -184,11 +208,18 @@ export default function CustomReminderForm({ onReminderAdded }) {
             placeholder="Minutes between reminders"
             value={time}
             onChange={(e) => setTime(e.target.value)}
+            onKeyDown={(e) => {
+              if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete') {
+                e.preventDefault()
+              }
+            }}
             className="w-full p-2 border border-gray-300 rounded text-sm"
+            required
           />
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition text-sm"
+            aria-label="Save custom reminder"
           >
             Save Custom Reminder
           </button>

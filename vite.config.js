@@ -9,30 +9,48 @@ export default defineConfig({
     {
       name: 'copy-extension-files',
       writeBundle() {
-        // Ensure dist directory exists
-        if (!existsSync('dist')) {
-          mkdirSync('dist', { recursive: true })
+        const distDir = 'dist'
+        if (!existsSync(distDir)) {
+          mkdirSync(distDir, { recursive: true })
         }
         
-        // Copy manifest.json
-        copyFileSync('manifest.json', 'dist/manifest.json')
+        // Copy manifest.json from public folder (usually manifest.json is in public/)
+        const manifestSrc = 'public/manifest.json'
+        const manifestDest = `${distDir}/manifest.json`
+        if (existsSync(manifestSrc)) {
+          copyFileSync(manifestSrc, manifestDest)
+        } else {
+          console.warn('manifest.json not found in public folder')
+        }
         
         // Copy background script
-        copyFileSync('src/background/background.js', 'dist/background.js')
+        const bgSrc = 'src/background/background.js'
+        const bgDest = `${distDir}/background.js`
+        if (existsSync(bgSrc)) {
+          copyFileSync(bgSrc, bgDest)
+        } else {
+          console.warn('background.js not found in src/background')
+        }
         
-        // Copy icons directory if it exists
-        if (existsSync('icons')) {
-          if (!existsSync('dist/icons')) {
-            mkdirSync('dist/icons', { recursive: true })
+        // Copy icons folder and files
+        const iconsSrcDir = 'public/icons'
+        const iconsDestDir = `${distDir}/icons`
+        if (existsSync(iconsSrcDir)) {
+          if (!existsSync(iconsDestDir)) {
+            mkdirSync(iconsDestDir, { recursive: true })
           }
-          // Copy icon files (you'll need to add actual icon files)
-          try {
-            copyFileSync('icons/icon16.png', 'dist/icons/icon16.png')
-            copyFileSync('icons/icon48.png', 'dist/icons/icon48.png')
-            copyFileSync('icons/icon128.png', 'dist/icons/icon128.png')
-          } catch (error) {
-            console.warn('Icon files not found. Please add icon files to the icons directory.')
-          }
+          const icons = ['icon16.png', 'icon48.png', 'icon128.png']
+          icons.forEach(iconFile => {
+            const src = `${iconsSrcDir}/${iconFile}`
+            const dest = `${iconsDestDir}/${iconFile}`
+            if (existsSync(src)) {
+              copyFileSync(src, dest)
+            } else {
+              console.warn(`Icon file ${iconFile} not found in ${iconsSrcDir}`)
+            }
+          })
+        } else {
+          console.warn('Icons directory not found in public')
         }
       }
     }

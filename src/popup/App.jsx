@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import CustomReminderForm from '../components/CustomReminder.jsx'
 import StreakCalendar from '../components/StreakCalender.jsx'
 import { getStorage, setStorage } from '../utils/storage.js'
@@ -9,6 +9,8 @@ export default function App() {
   const [currentStreak, setCurrentStreak] = useState(0)
   const [todayWalks, setTodayWalks] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+
+  const debounceTimer = useRef(null)
 
   useEffect(() => {
     loadData()
@@ -42,32 +44,36 @@ export default function App() {
     }
   }
 
-  const handleIntervalChange = async (e) => {
-    const value = e.target.value
+  const handleIntervalChange = (eOrValue) => {
+    const value = typeof eOrValue === 'object' ? eOrValue.target.value : eOrValue
     setInterval(value)
 
-    if (value && Number(value) > 0) {
-      try {
-        // Save interval
-        await setStorage({ walkInterval: Number(value) })
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
 
-        // Send message to background to update alarm
-        if (chrome?.runtime?.sendMessage) {
-          chrome.runtime.sendMessage({ 
-            type: 'SET_INTERVAL', 
-            interval: Number(value) 
-          }, (response) => {
-            if (chrome.runtime.lastError) {
-              console.error('Chrome runtime error:', chrome.runtime.lastError)
-            } else if (response && response.status) {
-              console.log(response.status)
-            }
-          })
+    debounceTimer.current = setTimeout(async () => {
+      if (value && Number(value) > 0) {
+        try {
+          // Save interval
+          await setStorage({ walkInterval: Number(value) })
+
+          // Send message to background to update alarm
+          if (chrome?.runtime?.sendMessage) {
+            chrome.runtime.sendMessage({ 
+              type: 'SET_INTERVAL', 
+              interval: Number(value) 
+            }, (response) => {
+              if (chrome.runtime.lastError) {
+                console.error('Chrome runtime error:', chrome.runtime.lastError)
+              } else if (response && response.status) {
+                console.log(response.status)
+              }
+            })
+          }
+        } catch (error) {
+          console.error('Error setting interval:', error)
         }
-      } catch (error) {
-        console.error('Error setting interval:', error)
       }
-    }
+    }, 500) // debounce 500ms
   }
 
   const handleManualWalkComplete = () => {
@@ -138,7 +144,7 @@ export default function App() {
                     key={minutes}
                     onClick={() => {
                       setInterval(minutes.toString())
-                      handleIntervalChange({ target: { value: minutes.toString() } })
+                      handleIntervalChange(minutes.toString())
                     }}
                     className={`p-2 text-sm rounded border transition ${
                       interval === minutes.toString()

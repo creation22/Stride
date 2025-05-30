@@ -1,37 +1,40 @@
 export const getStorage = (keys) => {
-  // Check if running in Chrome extension environment
   if (typeof chrome === 'undefined' || !chrome.storage?.sync) {
     console.warn('Chrome storage API not available, using fallback');
-    // Return the default keys object when Chrome storage is unavailable
     return Promise.resolve(keys);
   }
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     chrome.storage.sync.get(keys, (result) => {
-      // Deep merge the result with the default keys to ensure all properties exist
+      if (chrome.runtime.lastError) {
+        console.error('Chrome storage get error:', chrome.runtime.lastError);
+        reject(chrome.runtime.lastError);
+        return;
+      }
       const mergedResult = { ...keys };
-      
-      // Only override defaults with actual values from storage
       for (const key in result) {
         if (result[key] !== undefined && result[key] !== null) {
           mergedResult[key] = result[key];
         }
       }
-      
       resolve(mergedResult);
     });
   });
 };
 
 export const setStorage = (items) => {
-  // Check if running in Chrome extension environment
   if (typeof chrome === 'undefined' || !chrome.storage?.sync) {
     console.warn('Chrome storage API not available, storage operation skipped');
     return Promise.resolve();
   }
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     chrome.storage.sync.set(items, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Chrome storage set error:', chrome.runtime.lastError);
+        reject(chrome.runtime.lastError);
+        return;
+      }
       resolve();
     });
   });
