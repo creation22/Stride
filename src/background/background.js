@@ -8,6 +8,7 @@ function createAlarm(intervalMinutes) {
       delayInMinutes: intervalMinutes,
       periodInMinutes: intervalMinutes,
     });
+    console.log(`Walk reminder alarm set for every ${intervalMinutes} minutes.`);
   });
 }
 
@@ -18,6 +19,7 @@ function createCustomAlarm(id, intervalMinutes, label) {
     delayInMinutes: intervalMinutes,
     periodInMinutes: intervalMinutes,
   });
+  console.log(`Custom reminder '${label}' alarm set every ${intervalMinutes} minutes.`);
 }
 
 // Show a notification with safe defaults
@@ -29,6 +31,7 @@ function showNotification({ title, message, buttons = [], isSnoozed = false }) {
     message,
     priority: 2,
     buttons,
+    requireInteraction: false,
   }, (notificationId) => {
     if (chrome.runtime.lastError) {
       console.error('Notification error:', chrome.runtime.lastError.message);
@@ -99,6 +102,7 @@ function updateStreak() {
     const lastWalkDate = result.lastWalkDate;
     const currentStreak = result.currentStreak || 0;
 
+    // Increase walk count for today
     streaks[today] = (streaks[today] || 0) + 1;
 
     let newCurrentStreak = currentStreak;
@@ -118,14 +122,19 @@ function updateStreak() {
       streaks,
       lastWalkDate: today,
       currentStreak: newCurrentStreak
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error updating streak:', chrome.runtime.lastError);
+      } else {
+        console.log(`Streak updated to ${newCurrentStreak}`);
+        if (newCurrentStreak > currentStreak && newCurrentStreak % 7 === 0) {
+          showNotification({
+            title: '🎉 Milestone Achievement!',
+            message: `${newCurrentStreak}-day streak! You're amazing!`
+          });
+        }
+      }
     });
-
-    if (newCurrentStreak > currentStreak && newCurrentStreak % 7 === 0) {
-      showNotification({
-        title: '🎉 Milestone Achievement!',
-        message: `${newCurrentStreak}-day streak! You're amazing!`
-      });
-    }
   });
 }
 
@@ -173,6 +182,8 @@ chrome.runtime.onInstalled.addListener(() => {
         currentStreak: 0,
         streaks: {},
         customReminders: []
+      }, () => {
+        console.log('Default settings initialized.');
       });
     }
   });
