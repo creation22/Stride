@@ -24,17 +24,21 @@ export default function App() {
       })
       
       if (data.walkInterval) setInterval(data.walkInterval.toString())
-      setCurrentStreak(data.currentStreak)
+      setCurrentStreak(data.currentStreak || 0)
       
       // Get today's walk count
       const today = new Date().toISOString().slice(0, 10)
-      const todayCount = data.streaks[today] || 0
+      const todayCount = (data.streaks && typeof data.streaks === 'object' && data.streaks[today]) || 0
       setTodayWalks(todayCount)
       
       setIsLoading(false)
     } catch (error) {
       console.error('Error loading data:', error)
       setIsLoading(false)
+      // Set default values on error
+      setInterval('30')
+      setCurrentStreak(0)
+      setTodayWalks(0)
     }
   }
 

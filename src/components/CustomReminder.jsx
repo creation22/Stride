@@ -14,9 +14,10 @@ export default function CustomReminderForm({ onReminderAdded }) {
   const loadCustomReminders = async () => {
     try {
       const data = await getStorage({ customReminders: [] })
-      setCustomReminders(data.customReminders)
+      setCustomReminders(Array.isArray(data.customReminders) ? data.customReminders : [])
     } catch (error) {
       console.error('Error loading custom reminders:', error)
+      setCustomReminders([])
     }
   }
 
@@ -42,7 +43,7 @@ export default function CustomReminderForm({ onReminderAdded }) {
         created: new Date().toISOString()
       }
       
-      const updatedReminders = [...customReminders, newReminder]
+      const updatedReminders = [...(customReminders || []), newReminder]
       await setStorage({ customReminders: updatedReminders })
 
       // Send message to background to set up the alarm
@@ -84,13 +85,11 @@ export default function CustomReminderForm({ onReminderAdded }) {
     }
 
     try {
-      const updatedReminders = customReminders.filter(r => r.id !== id)
+      const updatedReminders = (customReminders || []).filter(r => r.id !== id)
       await setStorage({ customReminders: updatedReminders })
       
       // Clear the alarm for this reminder
-      if (chrome?.alarms?.clear) {
-        chrome.alarms.clear(`custom_${id}`)
-      } else if (chrome?.runtime?.sendMessage) {
+      if (chrome?.runtime?.sendMessage) {
         chrome.runtime.sendMessage({
           type: 'CLEAR_CUSTOM_ALARM',
           id: id
@@ -122,7 +121,7 @@ export default function CustomReminderForm({ onReminderAdded }) {
       </div>
 
       {/* Show existing reminders */}
-      {customReminders.length > 0 && (
+      {Array.isArray(customReminders) && customReminders.length > 0 && (
         <div className="space-y-2">
           {customReminders.map((reminder) => (
             <div key={reminder.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
@@ -171,7 +170,7 @@ export default function CustomReminderForm({ onReminderAdded }) {
         </form>
       )}
 
-      {customReminders.length === 0 && !showForm && (
+      {(!Array.isArray(customReminders) || customReminders.length === 0) && !showForm && (
         <div className="text-center text-gray-500 text-sm py-2">
           No custom reminders yet. Click "Add New" to create one!
         </div>
