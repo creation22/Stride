@@ -46,20 +46,45 @@ export default function CustomReminderForm({ onReminderAdded }) {
       const updatedReminders = [...(customReminders || []), newReminder]
       await setStorage({ customReminders: updatedReminders })
 
-      // Send message to background to set up the alarm
+      // Try Chrome extension API first
       if (chrome?.runtime?.sendMessage) {
         chrome.runtime.sendMessage({
           type: 'SET_CUSTOM_REMINDER',
           id: id,
           interval: Number(time),
           label: label.trim()
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            console.error('Chrome runtime error:', chrome.runtime.lastError)
-          } else if (response && response.status) {
-            console.log(response.status)
-          }
         })
+      } else {
+        // Fallback to Web Notifications API
+        if ('Notification' in window) {
+          // Request permission if needed
+          if (Notification.permission !== 'granted') {
+            await Notification.requestPermission()
+          }
+          
+          if (Notification.permission === 'granted') {
+            // Set up the interval for web notifications
+            const intervalId = setInterval(() => {
+              new Notification(label.trim(), {
+                body: `Time for your ${time}-minute reminder!`,
+                icon: '/icons/icon128.png'
+              })
+            }, Number(time) * 60 * 1000) // Convert minutes to milliseconds
+            
+            // Store the interval ID with the reminder
+            newReminder.webIntervalId = intervalId
+          } else {
+            alert('Notification permission denied. Reminders will only show as alerts.')
+          }
+        } else {
+          // Fallback to basic alerts if notifications aren't supported
+          const intervalId = setInterval(() => {
+            alert(`${label.trim()}: Time for your ${time}-minute reminder!`)
+          }, Number(time) * 60 * 1000)
+          
+          // Store the interval ID with the reminder
+          newReminder.webIntervalId = intervalId
+        }
       }
 
       // Reset form and refresh list
@@ -85,18 +110,18 @@ export default function CustomReminderForm({ onReminderAdded }) {
     }
 
     try {
+      const reminderToDelete = customReminders.find(r => r.id === id)
+      if (reminderToDelete && reminderToDelete.webIntervalId) {
+        clearInterval(reminderToDelete.webIntervalId)
+      }
+
       const updatedReminders = (customReminders || []).filter(r => r.id !== id)
       await setStorage({ customReminders: updatedReminders })
       
-      // Clear the alarm for this reminder
       if (chrome?.runtime?.sendMessage) {
         chrome.runtime.sendMessage({
           type: 'CLEAR_CUSTOM_ALARM',
           id: id
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            console.error('Chrome runtime error:', chrome.runtime.lastError)
-          }
         })
       }
       
