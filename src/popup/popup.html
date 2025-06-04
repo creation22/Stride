@@ -4,32 +4,647 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stride Reminder</title>
-  <link rel="stylesheet" href="popup.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      width: 350px;
+      min-height: 500px;
+      color: white;
+      overflow-x: hidden;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .logo {
+      font-size: 1.8em;
+      font-weight: bold;
+      background: linear-gradient(45deg, #ffd700, #ffed4e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      color: white;
+      font-size: 16px;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+
+    .main-content {
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .quote-section {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 20px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .quote {
+      font-size: 1.1em;
+      font-style: italic;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .quote-author {
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .primary-btn {
+      flex: 1;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    }
+
+    .secondary-btn {
+      flex: 1;
+      padding: 14px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: transparent;
+      color: white;
+    }
+
+    .secondary-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 16px;
+      left: 20px;
+      right: 20px;
+      text-align: center;
+    }
+
+    .coffee-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+      border: none;
+      border-radius: 20px;
+      color: white;
+      text-decoration: none;
+      font-size: 0.9em;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .coffee-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    }
+
+    /* Settings Modal */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 24px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 300px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 1.4em;
+      font-weight: bold;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.3s ease;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-size: 1em;
+    }
+
+    .form-input::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .form-select option {
+      background: #764ba2;
+      color: white;
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .save-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+
+    /* Streak Modal */
+    .streak-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      margin: 20px 0;
+    }
+
+    .streak-day {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .streak-day.active {
+      background: #4CAF50;
+    }
+
+    .streak-day.today {
+      border: 2px solid #ffd700;
+    }
+
+    .streak-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+      font-size: 0.9em;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+      background: #4CAF50;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    .reminder-status {
+      text-align: center;
+      margin: 16px 0;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      font-size: 0.9em;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Stride</h1>
-
-    <div class="section">
-      <label for="interval">Reminder Interval (minutes)</label>
-      <input type="number" id="interval" min="1" placeholder="e.g. 30" />
+  <div class="header">
+    <div class="logo">Stride 🚶‍♂️</div>
+    <div class="header-buttons">
+      <button class="icon-btn" id="settings-btn" title="Settings">⚙️</button>
+      <button class="icon-btn" id="streak-btn" title="Streak">🔥</button>
     </div>
-
-    <div class="section">
-      <label for="sound-select">Notification Sound</label>
-      <select id="sound-select">
-        <!-- Options will be populated dynamically -->
-      </select>
-    </div>
-
-    <div class="section">
-      <button id="start-btn">Start Reminder</button>
-      <button id="stop-btn">Stop Reminder</button>
-    </div>
-
-    <div id="streak">🔥 Streak: <span id="streak-count">0</span> days</div>
   </div>
 
-  <script src="popup.js"></script>
+  <div class="main-content">
+    <div class="quote-section">
+      <div class="quote" id="daily-quote">
+        "A journey of a thousand miles begins with a single step."
+      </div>
+      <div class="quote-author">- Lao Tzu</div>
+    </div>
+
+    <div class="reminder-status" id="status">
+      <span class="status-indicator"></span>
+      Reminder Active - Next walk in 25 minutes
+    </div>
+
+    <div class="control-buttons">
+      <button class="primary-btn" id="start-btn">Start Walking</button>
+      <button class="secondary-btn" id="stop-btn">Pause</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="#" class="coffee-btn" id="coffee-btn">
+      ☕ Buy me a coffee
+    </a>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settings-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Settings</div>
+        <button class="close-btn" id="close-settings">×</button>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="interval">Reminder Interval (minutes)</label>
+        <input type="number" class="form-input" id="interval" min="1" max="480" placeholder="e.g. 30" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="sound-select">Notification Sound</label>
+        <select class="form-select" id="sound-select">
+          <option value="">No Sound</option>
+          <option value="../../public/sounds/wolves_pack.wav">Wolves Pack</option>
+          <option value="../../public/sounds/technologyfuturistichum.wav">Technology</option>
+          <option value="../../public/sounds/natural_ambience.wav">Natural</option>
+          <option value="../../public/sounds/rooster.wav">Rooster</option>
+          <option value="../../public/sounds/littlebird.wav">Birds</option>
+          <option value="../../public/sounds/happybell.wav">Bells</option>
+          <option value="../../public/sounds/electronicpowerup.wav">Electronic</option>
+          <option value="../../public/sounds/dogbark.wav">Dog Bark</option>
+          <option value="../../public/sounds/classicalarms.wav">Classical Alarms</option>
+          <option value="../../public/sounds/army_crowd.wav">Army Crowd</option>
+        </select>
+      </div>
+
+      <button class="save-btn" id="save-settings">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- Streak Modal -->
+  <div class="modal" id="streak-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Your Walking Streak 🔥</div>
+        <button class="close-btn" id="close-streak">×</button>
+      </div>
+      
+      <div style="text-align: center; margin-bottom: 16px;">
+        <div style="font-size: 2em; font-weight: bold; color: #ffd700;">
+          <span id="current-streak">0</span> Days
+        </div>
+        <div style="font-size: 0.9em; opacity: 0.8;">Current Streak</div>
+      </div>
+
+      <div class="streak-grid" id="streak-grid">
+        <!-- Grid will be populated by JavaScript -->
+      </div>
+
+      <div class="streak-stats">
+        <div>
+          <strong>Longest:</strong> <span id="longest-streak">0</span> days
+        </div>
+        <div>
+          <strong>This Week:</strong> <span id="week-streak">0</span> days
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Motivational quotes
+    const quotes = [
+      { text: "A journey of a thousand miles begins with a single step.", author: "Lao Tzu" },
+      { text: "Walking is the best possible exercise.", author: "Thomas Jefferson" },
+      { text: "Every step you take is a step toward better health.", author: "Unknown" },
+      { text: "The body benefits from movement, and the mind benefits from stillness.", author: "Sakyong Mipham" },
+      { text: "Walking is a man's best medicine.", author: "Hippocrates" },
+      { text: "Take time to make your soul happy.", author: "Unknown" },
+      { text: "Movement is a medicine for creating change.", author: "Carol Welch" },
+      { text: "A walk a day keeps the doctor away.", author: "Unknown" }
+    ];
+
+    // DOM Elements
+    const settingsBtn = document.getElementById('settings-btn');
+    const streakBtn = document.getElementById('streak-btn');
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const coffeeBtn = document.getElementById('coffee-btn');
+    const statusDiv = document.getElementById('status');
+    const quoteDiv = document.getElementById('daily-quote');
+    const quoteAuthor = document.querySelector('.quote-author');
+
+    // Modals
+    const settingsModal = document.getElementById('settings-modal');
+    const streakModal = document.getElementById('streak-modal');
+    const closeSettings = document.getElementById('close-settings');
+    const closeStreak = document.getElementById('close-streak');
+
+    // Form elements
+    const intervalInput = document.getElementById('interval');
+    const soundSelect = document.getElementById('sound-select');
+    const saveSettingsBtn = document.getElementById('save-settings');
+
+    // State variables
+    let isReminderActive = false;
+    let currentStreak = 0;
+    let nextReminderTime = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      updateDailyQuote();
+      loadStreakData();
+      updateStatus();
+      generateStreakGrid();
+    });
+
+    // Event Listeners
+    settingsBtn.addEventListener('click', () => {
+      settingsModal.style.display = 'flex';
+    });
+
+    streakBtn.addEventListener('click', () => {
+      streakModal.style.display = 'flex';
+      updateStreakDisplay();
+    });
+
+    closeSettings.addEventListener('click', () => {
+      settingsModal.style.display = 'none';
+    });
+
+    closeStreak.addEventListener('click', () => {
+      streakModal.style.display = 'none';
+    });
+
+    // Close modals when clicking outside
+    [settingsModal, streakModal].forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.style.display = 'none';
+        }
+      });
+    });
+
+    startBtn.addEventListener('click', () => {
+      const interval = parseInt(intervalInput.value) || 30;
+      startReminder(interval);
+    });
+
+    stopBtn.addEventListener('click', () => {
+      stopReminder();
+    });
+
+    saveSettingsBtn.addEventListener('click', () => {
+      saveSettings();
+    });
+
+    coffeeBtn.addEventListener('click', () => {
+      // Open buy me coffee link
+      chrome.tabs.create({ url: 'https://buymeacoffee.com/yourname' });
+    });
+
+    // Functions
+    function updateDailyQuote() {
+      const today = new Date().getDate();
+      const quote = quotes[today % quotes.length];
+      quoteDiv.textContent = `"${quote.text}"`;
+      quoteAuthor.textContent = `- ${quote.author}`;
+    }
+
+    function loadSettings() {
+      // In a real Chrome extension, this would use chrome.storage.sync.get
+      const savedInterval = localStorage.getItem('walkInterval') || '30';
+      const savedSound = localStorage.getItem('walkSound') || '';
+      
+      intervalInput.value = savedInterval;
+      soundSelect.value = savedSound;
+    }
+
+    function saveSettings() {
+      const interval = intervalInput.value;
+      const sound = soundSelect.value;
+      
+      // In a real Chrome extension, this would use chrome.storage.sync.set
+      localStorage.setItem('walkInterval', interval);
+      localStorage.setItem('walkSound', sound);
+      
+      settingsModal.style.display = 'none';
+      
+      // Show success message
+      showNotification('Settings saved successfully!');
+    }
+
+    function loadStreakData() {
+      // In a real Chrome extension, this would use chrome.storage.sync.get
+      currentStreak = parseInt(localStorage.getItem('walkStreak')) || 0;
+      document.getElementById('current-streak').textContent = currentStreak;
+    }
+
+    function startReminder(interval) {
+      isReminderActive = true;
+      nextReminderTime = Date.now() + (interval * 60 * 1000);
+      
+      // In a real Chrome extension, this would use chrome.alarms.create
+      localStorage.setItem('reminderActive', 'true');
+      localStorage.setItem('nextReminder', nextReminderTime.toString());
+      
+      updateStatus();
+      showNotification('Walking reminder started!');
+    }
+
+    function stopReminder() {
+      isReminderActive = false;
+      nextReminderTime = null;
+      
+      // In a real Chrome extension, this would use chrome.alarms.clear
+      localStorage.removeItem('reminderActive');
+      localStorage.removeItem('nextReminder');
+      
+      updateStatus();
+      showNotification('Walking reminder stopped.');
+    }
+
+    function updateStatus() {
+      if (isReminderActive && nextReminderTime) {
+        const timeLeft = Math.max(0, Math.ceil((nextReminderTime - Date.now()) / (1000 * 60)));
+        statusDiv.innerHTML = `
+          <span class="status-indicator"></span>
+          Reminder Active - Next walk in ${timeLeft} minutes
+        `;
+        statusDiv.style.display = 'block';
+      } else {
+        statusDiv.innerHTML = `
+          <span style="background: #ff6b6b;"></span>
+          No active reminders
+        `;
+      }
+    }
+
+    function generateStreakGrid() {
+      const grid = document.getElementById('streak-grid');
+      grid.innerHTML = '';
+      
+      // Generate last 84 days (12 weeks)
+      const today = new Date();
+      for (let i = 83; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        
+        const day = document.createElement('div');
+        day.className = 'streak-day';
+        
+        // Simulate some streak data
+        if (Math.random() > 0.3) {
+          day.classList.add('active');
+        }
+        
+        if (i === 0) {
+          day.classList.add('today');
+        }
+        
+        day.title = date.toDateString();
+        grid.appendChild(day);
+      }
+    }
+
+    function updateStreakDisplay() {
+      document.getElementById('current-streak').textContent = currentStreak;
+      document.getElementById('longest-streak').textContent = Math.max(currentStreak, 7);
+      document.getElementById('week-streak').textContent = Math.min(currentStreak, 7);
+    }
+
+    function showNotification(message) {
+      // Create a simple toast notification
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-size: 0.9em;
+      `;
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 2000);
+    }
+
+    // Update status every minute
+    setInterval(updateStatus, 60000);
+  </script>
 </body>
 </html>
