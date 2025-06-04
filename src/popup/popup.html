@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stride Reminder</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Stride</h1>
+
+    <div class="section">
+      <label for="interval">Reminder Interval (minutes)</label>
+      <input type="number" id="interval" min="1" placeholder="e.g. 30" />
+    </div>
+
+    <div class="section">
+      <label for="sound-select">Notification Sound</label>
+      <select id="sound-select">
+        <!-- Options will be populated dynamically -->
+      </select>
+    </div>
+
+    <div class="section">
+      <button id="start-btn">Start Reminder</button>
+      <button id="stop-btn">Stop Reminder</button>
+    </div>
+
+    <div id="streak">🔥 Streak: <span id="streak-count">0</span> days</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

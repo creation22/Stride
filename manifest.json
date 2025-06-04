@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Stride - Walk Reminder",
+  "version": "1.0",
+  "description": "Reminds you to walk at custom intervals, plays sounds, and tracks your streak.",
+  "permissions": ["storage", "notifications", "alarms"],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": "public/icons/stride.png"
+  },
+  "background": {
+    "service_worker": "src/background/background.js"
+  }
+
+}
