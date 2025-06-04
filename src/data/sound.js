@@ -1,7 +1,8 @@
 // sounds.js
 
 const sounds = [
-  { name: "Wolves", src: "../../public/sounds/wolves_pack.wav." },
+  
+  { name: "Wolves Pack", src: "../../public/sounds/wolves_pack.wav" },
   { name: "Technology", src: "../../public/sounds/technologyfuturistichum.wav" },
   { name: "Natural", src: "../../public/sounds/natural_ambience.wav" },
   { name: "Rooster", src: "../../public/sounds/rooster.wav" },
